@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# Based on: 
+# http://goughlui.com/2013/04/24/review-unbranded-1-44mb-usb-100-floppy-emulator/
+
+block_size=1024
+block_count=1440
+disk_padding=96
+
+floppy_params="bs=${block_size} count=${block_count}"
+let fs_limit="$block_size * $block_count"
+
+function usage() {
+	local me=$(basename $0)
+	echo "Usage: $me <mode> [in] [out] [slot]"
+	echo
+	echo "Modes:"
+	echo "new  : Create an empty 1.44M disk image in [out]"
+	echo "copy : Copy file or directory [in] to floppy image [out]"
+	echo "       (runs 'new [out]' if [out] doesn't exist)"
+	echo "write: Write [in (floppy image)] to [out (usb image)], slot [slot]"
+	echo "dump : Write [in], [slot] to [out] TODO"
+	echo "mount: Mount [in], [slot] to [out]"
+	echo
+	echo "Example:"
+       	echo "  $me new foo.img"
+	echo "  $me copy ~/floppy_disk/ foo.img"
+	echo "  $me write foo.img usb_img.img 1"
+	echo "  $me mount usb_img.img 1"
+	echo "  $ dd usb_img.img /dev/my_usb"
+}
+
+function do_new() {
+	local out="$1"
+	if [ -z "$out" ]
+	then
+		usage
+		exit 1
+	fi
+	dd ${floppy_params} if=/dev/zero of="$out"
+	mkfs.msdos "$out"
+	if [ $? = 0 ]
+	then
+		du -sk "$out"
+	fi
+}
+
+function do_copy() {
+	if [ "$UID" != "0" ]
+	then
+		echo "Sorry, I need root priveleges to mount an image"
+		exit 1
+	fi
+
+	local in="$1"
+	local out="$2"
+
+	if [ -z "$in" -o -z "$out" ]
+	then
+		usage
+		exit 1
+	fi
+
+	if [ ! -e "$in" ]
+	then
+		echo "\"$in\": doesn't exist"
+		exit 1
+	fi
+	srcsize=$(du -sk "$in" | cut -f 1)
+	echo "Source size: ${srcsize}K"
+	if [ $srcsize -ge $block_count ]
+	then
+		echo "\"$in\": ${srcsize}K: won't fit onto \"$out\""
+		exit 1
+	fi
+
+	tmp_img="$out" # $(mktemp)
+	if [ ! -e "$out" ]
+	then
+		do_new "$tmp_img"
+	else
+		echo "Note: \"$out\": already exists"
+	fi
+	tmp_mount=$(mktemp --directory)
+	mount "$tmp_img" "$tmp_mount" 
+	ret=$?
+	if [ "$ret" -ne 0 ]
+	then
+		echo "mount \"$tmp_img\" \"$tmp_mount\": Failure: $ret"
+		exit $ret
+	fi
+	find "$in" -exec cp -v "{}" "$tmp_mount/" \;
+	#cp -rv "$in/"* "$tmp_mount/"
+	umount "$tmp_mount"
+	rm -rf "$tmp_mount"
+}
+
+function do_write() {
+	local in=$1
+	local out=$2
+	local slot=$3
+
+	if [ -z "$in" -o -z "$out" -o -z "$slot" ]
+	then
+		usage
+		exit 1
+	fi
+
+	if [ ! -e "$in" ]
+	then
+		echo "\"$in\": doesn't exist"
+		exit 1
+	fi
+	if [ -e "$out" ]
+	then
+		echo "Note: \"$out\": already exists"
+	fi
+	case "$slot" in
+	    ''|*[!0-9]*) 
+	    	echo "\"$slot\": Not a number" 
+		exit 1
+		;;
+	    *) 
+	    	;;
+	esac
+
+	let offset="(${block_count} + ${padding}) * $slot"
+	echo "Copy \"$in\" to \"$out\", slot $slot"
+	echo dd ${floppy_params} seek="$offset" if="$in" of="$out"
+	dd ${floppy_params} seek="$offset" if="$in" of="$out"
+}
+
+function do_mount() {
+	if [ "$UID" != "0" ]
+	then
+		echo "Sorry, I need root priveleges to mount an image"
+		exit 1
+	fi
+
+	local in=$1
+	local out=$2
+	local slot=$3
+
+	if [ -z "$in" -o -z "$out" -o -z "$slot" ]
+	then
+		usage
+		exit 1
+	fi
+
+	if [ ! -e "$in" ]
+	then
+		echo "\"$in\": doesn't exist"
+		exit 1
+	fi
+
+	case "$slot" in
+	    ''|*[!0-9]*) 
+	    	echo "\"$slot\": Not a number" 
+		exit 1
+		;;
+	    *) 
+	    	;;
+	esac
+
+	#echo "Mount \"$in\" to \"$out\", slot $slot"
+	let offset="$block_size * ($block_count + $disk_padding) * $slot"
+	echo mount -o loop,offset=${offset},sizelimit=${fs_limit} -t msdos "$in" "$out"
+	mount -o loop,offset=${offset},sizelimit=${fs_limit} -t msdos "$in" "$out"
+}
+mode=$1
+shift
+
+echo "Mode: $mode"
+
+if [ "$mode" = "new" ]
+then
+	do_new "$1"
+elif [ "$mode" = "copy" ]
+then
+	do_copy "$1" "$2"
+elif [ "$mode" = "write" ]
+then
+	do_write  "$1" "$2" "$3"
+elif [ "$mode" = "mount" ]
+then
+	do_mount "$1" "$2" "$3"
+else
+	usage
+	exit 1
+fi
+
+
+
