@@ -1,9 +1,28 @@
 #!/usr/bin/env bash
-# Obtw, the mounting code needs loopback support in your kernel.
-# By gammy
+# This is a tool to assist in the usage of flopy disk hardware emulators:
+# https://en.wikipedia.org/wiki/Floppy_disk_hardware_emulator.
+#
+# Several of these devices (presumably cheaper ones) don't store
+# floppy drives as files on an existing file system, but rather just
+# store the raw data with a 96K offset. It renders the USB-stick
+# useless for any other purposes.
+#
+# It also means that you need customized software to access the virtual
+# floppy disks. What a cheap way to do it!
+#
+# Anyhow, with the information provided by 
 # 
-# Based on: 
+# Based on Gough Lui's blog
 # http://goughlui.com/2013/04/24/review-unbranded-1-44mb-usb-100-floppy-emulator/
+# this script allows you to perform basic operations such as 
+# - Create or Copy data to a virtual floppy disk
+# - Write a floppy disk image to a specific slot (number)
+# - Mount any virtual floppy disk image slot
+#
+# It only uses stock tools such as `dd`, `mkfs.msdos` and `mount`.
+# Obtw, the mounting code needs loopback support in your kernel.
+#
+# By gammy
 
 block_size=1024
 block_count=1440
@@ -20,9 +39,8 @@ let fs_limit="$block_size * $block_count"
 function usage() {
 	local me=$(basename $0)
 	echo "Mount/Read/Write Floppy Emulation USB sticks"
-	echo "A cheap script to easier handle this annoying format"
 	echo
-	echo " - USE WITH EXTREME CATION - "
+	echo " - USE WITH EXTREME CAUTION - "
 	echo
 	echo "Usage: $me <mode> [in] [out] [slot]"
 	echo
@@ -31,7 +49,7 @@ function usage() {
 	echo "copy : Copy file or directory [in] to floppy image [out]"
 	echo "       (runs 'new [out]' if [out] doesn't exist)"
 	echo "write: Write [in (floppy image)] to [out (usb image)], slot [slot]"
-	echo "dump : Write [in], [slot] to [out] TODO"
+	echo "dump : Write [in], [slot] to [out] *TODO*"
 	echo "mount: Mount [in], [slot] to [out]"
 	echo
 	echo "Example:"
