@@ -2,6 +2,8 @@
 # This is a tool to assist in the usage of floppy disk hardware emulators:
 # https://en.wikipedia.org/wiki/Floppy_disk_hardware_emulator
 #
+# By gammy, anno 2015. To reach me, try https://github.com/gammy
+#
 # Several of these devices (presumably cheaper ones) don't store
 # floppy drives as files on an existing file system, but rather just
 # store the raw data with a 96K offset. It renders the USB-stick
@@ -20,23 +22,21 @@
 #
 # It only uses stock tools such as `dd`, `mkfs.msdos` and `mount`.
 # Obtw, the mounting code needs loopback support in your kernel.
-#
-# By gammy
 
 block_size=1024
 block_count=1440
 disk_padding=96
 
-deps=(dd mount mkfs.msdos)
-for dep in ${deps[@]}; do
-	which $dep > /dev/null || exit $?
+deps=(dd mount mkfs.msdos cut)
+for dep in "${deps[@]}"; do
+	which "$dep" > /dev/null || exit $?
 done
 
-floppy_params="bs=${block_size} count=${block_count}"
+floppy_params=(bs="${block_size}" count="${block_count}")
 let fs_limit="$block_size * $block_count"
 
 function usage() {
-	local me=$(basename $0)
+	local me=$(basename "$0")
 	echo "Mount/Read/Write Floppy Emulation USB sticks"
 	echo
 	echo " - USE WITH EXTREME CAUTION - "
@@ -68,7 +68,7 @@ function do_new() {
 		exit 1
 	fi
 
-	dd ${floppy_params} if=/dev/zero of="$out"
+	dd "${floppy_params[@]}" if=/dev/zero of="$out"
 	mkfs.msdos "$out"
 
 	if [ $? = 0 ]; then
@@ -159,8 +159,8 @@ function do_write() {
 
 	let offset="(${block_count} + ${disk_padding}) * $slot"
 	echo "Copy \"$in\" to \"$out\", slot $slot"
-	echo dd ${floppy_params} seek="$offset" if="$in" of="$out"
-	dd ${floppy_params} seek="$offset" if="$in" of="$out"
+	echo dd "${floppy_params[@]}" seek="$offset" if="$in" of="$out"
+	dd "${floppy_params[@]}" seek="$offset" if="$in" of="$out"
 }
 
 function do_mount() {
