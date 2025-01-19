@@ -22,6 +22,10 @@
 #
 # It only uses stock tools such as `dd`, `mkfs.msdos` and `mount`.
 # Obtw, the mounting code needs loopback support in your kernel.
+#
+# Copyright (C) 2015 Kristian Gunstone
+# Use of this source code is governed by the Simplified BSD License:
+# https://opensource.org/license/bsd-2-clause
 
 block_size=1024
 block_count=1440
