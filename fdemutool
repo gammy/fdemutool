@@ -27,9 +27,9 @@ block_size=1024
 block_count=1440
 disk_padding=96
 
-deps=(dd mount mkfs.msdos )
+deps=(dd mount mkfs.msdos)
 for dep in ${deps[@]}; do
-        which $dep > /dev/null || exit $?
+	which $dep > /dev/null || exit $?
 done
 
 floppy_params="bs=${block_size} count=${block_count}"
