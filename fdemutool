@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# This is a tool to assist in the usage of flopy disk hardware emulators:
-# https://en.wikipedia.org/wiki/Floppy_disk_hardware_emulator.
+# This is a tool to assist in the usage of floppy disk hardware emulators:
+# https://en.wikipedia.org/wiki/Floppy_disk_hardware_emulator
 #
 # Several of these devices (presumably cheaper ones) don't store
 # floppy drives as files on an existing file system, but rather just
@@ -10,10 +10,9 @@
 # It also means that you need customized software to access the virtual
 # floppy disks. What a cheap way to do it!
 #
-# Anyhow, with the information provided by 
-# 
-# Based on Gough Lui's blog
+# Anyhow, with the information provided on Gough Lui's blogpost
 # http://goughlui.com/2013/04/24/review-unbranded-1-44mb-usb-100-floppy-emulator/
+#
 # this script allows you to perform basic operations such as 
 # - Create or Copy data to a virtual floppy disk
 # - Write a floppy disk image to a specific slot (number)
